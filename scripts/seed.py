@@ -2,7 +2,10 @@ from datetime import datetime, timedelta, timezone
 import json
 import random
 import uuid
+from argon2 import PasswordHasher
 
+ph = PasswordHasher()
+password_hash = ph.hash("password")
 
 random.seed(42)
 OUTPUT_FILE = "schema/01-seed.sql"
@@ -10,7 +13,7 @@ BASE_TIME = datetime(2026, 10, 9, 8, 0, 0, tzinfo=timezone.utc)
 
 
 FIRST_NAMES = [
-    "Kavindu", "Nuwan", "Chathura", "Dinesh", "Saman", "Kasun", "Ruwan", "Dilshan",
+    "Kavindu", "Nuwan", "Chameera", "Dinesh", "Saman", "Kasun", "Ruwan", "Dilshan",
     "Pradeep", "Nadeesha", "Sanduni", "Tharushi", "Malsha", "Ishara", "Suresh",
     "Mahesh", "Nalaka", "Chaminda", "Supun", "Roshan", "Anura", "Janaka", "Priyantha",
     "Ashan", "Duminda", "Buddhika", "Harsha", "Manjula", "Sunil", "Bandula"
@@ -20,6 +23,12 @@ LAST_NAMES = [
     "Perera", "Fernando", "Silva", "Jayasinghe", "Bandara", "Dissanayake", "Herath",
     "Gunasekara", "Amarasinghe", "Karunaratne", "Senanayake", "Ranasinghe", "Liyanage",
     "Wickramasinghe", "Ekanayake", "Rajapaksha", "Mendis", "Alwis", "Weerasinghe"
+]
+
+STREET_NAMES = [
+    "Station", "Temple", "Hospital", "Main", "Post Office",
+    "School", "Market", "Lake", "Hill", "Commercial",
+    "Cross", "Circular", "Garden", "Park", "Riverside"
 ]
 
 CITIES = [
@@ -107,33 +116,27 @@ def main():
     total_rows = 0
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         f.write("BEGIN;\n\n")
-
-        
-        
-        
         
         users = [
             (
                 uuid.UUID(int=1), "System Administrator", "admin@supplychain.internal",
                 BASE_TIME - timedelta(days=90), None, "admin",
-                "$2b$12$e80MvQkK6Q5Z6XhF6Q6iK.b7fK.30s8nQoUu3zJbQf0aT7GqI7rGe",
+                password_hash,
                 BASE_TIME - timedelta(days=90), BASE_TIME - timedelta(days=90)
             ),
             (
                 uuid.UUID(int=2), "Head of Logistics", "logistics.director@supplychain.internal",
                 BASE_TIME - timedelta(days=85), None, "logistics",
-                "$2b$12$e80MvQkK6Q5Z6XhF6Q6iK.b7fK.30s8nQoUu3zJbQf0aT7GqI7rGe",
+                password_hash,
                 BASE_TIME - timedelta(days=85), BASE_TIME - timedelta(days=85)
             ),
             (
                 uuid.UUID(int=3), "Commercial Sales Lead", "sales.lead@supplychain.internal",
                 BASE_TIME - timedelta(days=80), None, "sales",
-                "$2b$12$e80MvQkK6Q5Z6XhF6Q6iK.b7fK.30s8nQoUu3zJbQf0aT7GqI7rGe",
+                password_hash,
                 BASE_TIME - timedelta(days=80), BASE_TIME - timedelta(days=80)
             )
         ]
-
-        
         for i in range(10):
             uid = uuid.UUID(int=10 + i)
             first = FIRST_NAMES[i % len(FIRST_NAMES)]
@@ -141,7 +144,7 @@ def main():
             users.append((
                 uid, f"{first} {last} (Manager)", f"manager.{CITIES[i][2].lower()}@supplychain.internal",
                 BASE_TIME - timedelta(days=70 - i), None, "store_manager",
-                "$2b$12$e80MvQkK6Q5Z6XhF6Q6iK.b7fK.30s8nQoUu3zJbQf0aT7GqI7rGe",
+                password_hash,
                 BASE_TIME - timedelta(days=70 - i), BASE_TIME - timedelta(days=70 - i)
             ))
 
@@ -153,7 +156,7 @@ def main():
             users.append((
                 uid, f"{first} {last}", f"user.{first.lower()}.{last.lower()}{i+1}@gmail.com",
                 BASE_TIME - timedelta(days=60 - (i % 30)), None, "user",
-                "$2b$12$e80MvQkK6Q5Z6XhF6Q6iK.b7fK.30s8nQoUu3zJbQf0aT7GqI7rGe",
+                password_hash,
                 BASE_TIME - timedelta(days=60 - (i % 30)), BASE_TIME - timedelta(days=60 - (i % 30))
             ))
 
@@ -165,9 +168,6 @@ def main():
         total_rows += len(users)
 
         admin_uid = users[0][0]
-
-        
-        
         
         stores = []
         for i, (name, addr, _) in enumerate(CITIES, start=1):
@@ -183,9 +183,6 @@ def main():
             stores
         )
         total_rows += len(stores)
-
-        
-        
         
         routes = []
         route_id = 1
@@ -209,9 +206,6 @@ def main():
         )
         total_rows += len(routes)
 
-        
-        
-        
         trucks = []
         truck_id = 1
         for s_idx in range(1, 11):
@@ -235,9 +229,6 @@ def main():
         )
         total_rows += len(trucks)
 
-        
-        
-        
         employees = []
         emp_id = 1
         store_drivers = {s_idx: [] for s_idx in range(1, 11)}
@@ -277,9 +268,6 @@ def main():
         )
         total_rows += len(employees)
 
-        
-        
-        
         customers = []
         for c_id in range(1, 201):
             first = FIRST_NAMES[(c_id * 3) % len(FIRST_NAMES)]
@@ -292,7 +280,8 @@ def main():
                 "tier": random.choice(["Standard", "Silver", "Gold", "VIP"]),
                 "credit_limit": random.choice([25000, 50000, 100000])
             }
-            c_addr = f"No. {random.randint(1, 250)}, {first} Road, Route #{c_route} Region"
+            street = random.choice(STREET_NAMES)
+            c_addr = f"No. {random.randint(1, 250)}, {street} Road, Route #{c_route} Region"
             c_phone = generate_phone(5000 + c_id)
 
             customers.append((
@@ -307,9 +296,6 @@ def main():
         )
         total_rows += len(customers)
 
-        
-        
-        
         products = []
         for p_id, item in enumerate(PRODUCT_CATALOG, start=1):
             p_name, unit_price, space_unit, p_meta = item
@@ -324,10 +310,6 @@ def main():
             products
         )
         total_rows += len(products)
-
-        
-        
-        
         orders = []
         order_items = []
         item_id = 1
@@ -393,9 +375,6 @@ def main():
             order_items
         )
         total_rows += len(order_items)
-
-        
-        
         
         train_schedules = []
         for ts_id in range(1, 81):
@@ -415,10 +394,6 @@ def main():
         )
         total_rows += len(train_schedules)
 
-        
-        
-        
-        
         train_eligible_items = [
             item for item in order_items 
             if item[5] in ("SCHEDULED", "IN_TRANSIT", "STORE_RECEIVED", "OUT_FOR_DELIVERY", "DELIVERED")
@@ -442,10 +417,6 @@ def main():
             train_allocations
         )
         total_rows += len(train_allocations)
-
-        
-        
-        
         truck_schedules = []
         for sch_id in range(1, 251):
             chosen_truck = trucks[(sch_id - 1) % len(trucks)]
@@ -475,12 +446,9 @@ def main():
         )
         total_rows += len(truck_schedules)
 
-        
-        
-        
         delivery_candidates = [
             item for item in order_items 
-            if item[5] in ("OUT_FOR_DELIVERY", "DELIVERED", "DELIVERY_FAILED")
+            if item[4] in ("OUT_FOR_DELIVERY", "DELIVERED", "DELIVERY_FAILED")
         ]
         
         truck_deliveries = []
@@ -507,10 +475,6 @@ def main():
             truck_deliveries
         )
         total_rows += len(truck_deliveries)
-
-        
-        
-        
         f.write("-- ---------------------------------------------------------\n")
         f.write("-- Sync Identity Sequences with Max Generated Primary Keys\n")
         f.write("-- ---------------------------------------------------------\n")
