@@ -36,6 +36,7 @@ if st.session_state.authenticated:
         "Logistics & Dispatch": [
             st.Page("routes/03_Train_Logistics.py", title="Rail Bulk Manifest", icon="🚆"),
             st.Page("routes/04_Truck_Logistics.py", title="Last-Mile Dispatch", icon="📦"),
+	    st.Page("routes/12_Receive_Cargo.py", title="Receive Cargo", icon="📦")
         ],
         "Fleet & Operations": [
             st.Page("routes/05_Fleet_Routes.py", title="Fleet & Routes", icon="🚛"),

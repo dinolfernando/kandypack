@@ -36,7 +36,7 @@ with col_filter:
 kpi_query = """
     SELECT 
         (SELECT COUNT(*) FROM orders WHERE EXTRACT(YEAR FROM order_date) = %s) AS total_orders,
-        (SELECT COALESCE(SUM(oi.total_price), 0) 
+        (SELECT COALESCE(SUM(oi.unit_price), 0) 
          FROM order_items oi 
          JOIN orders o ON oi.order_id = o.id 
          WHERE EXTRACT(YEAR FROM o.order_date) = %s) AS total_revenue,
@@ -131,7 +131,7 @@ recent_query = """
         s.store_name AS hub,
         o.order_date,
         COUNT(oi.id) AS item_count,
-        COALESCE(SUM(oi.total_price), 0) AS total_value
+        COALESCE(SUM(oi.unit_price), 0) AS total_value
     FROM orders o
     JOIN customers c ON o.customer_id = c.id
     JOIN routes r ON o.route_id = r.id
